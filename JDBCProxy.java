@@ -115,10 +115,13 @@ public class JDBCProxy {
         }
 
         BufferedReader f = new BufferedReader(new InputStreamReader(System.in));
+        String query = "";
         String line = null;
         while((line = f.readLine()) != null){
-            conn.execute(line);
+            if(query.length()>0) query += "\n";
+            query += line;
         }
+        conn.execute(query);
         conn.disconnect();
     }
 }
