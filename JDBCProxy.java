@@ -2,6 +2,7 @@ import java.io.*;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -40,6 +41,10 @@ class Connection {
         }
     }
 
+    public void disconnect() throws java.sql.SQLException{
+        this.connection.close();
+    }
+    
     public void printTableNames() throws SQLException{
         DatabaseMetaData md = connection.getMetaData();
         ResultSet rs = md.getTables(null, null, "%", null);
@@ -47,22 +52,24 @@ class Connection {
             System.out.println(rs.getString(3));
         }
     }
-
+    
+    @SuppressWarnings("unchecked")
     public void execute(String query){
         JSONArray result = new JSONArray();
         try{
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.execute();
-            ResultSet applications = statement.getResultSet();
-            ResultSetMetaData applicationFields = applications.getMetaData();
-            while(applications.next()){
+            Statement statement = connection.createStatement();
+            statement.executeQuery(query);
+            ResultSet rs = statement.getResultSet();
+            ResultSetMetaData rsFields = rs.getMetaData();
+            while(rs.next()){
                 JSONArray row = new JSONArray();
-                for(int i=1;i<=applicationFields.getColumnCount();i++){
-                    row.add(applications.getObject(i));
-                    //System.out.println(applications.getObject(i));
+                for(int i=1; i<=rsFields.getColumnCount(); i++){
+                    row.add(rs.getObject(i));
                 }
                 result.add(row);
             }
+            rs.close();
+            statement.close();
         }catch(Exception e){
             System.out.println(e);
         }
@@ -106,10 +113,9 @@ public class JDBCProxy {
         BufferedReader f = new BufferedReader(new InputStreamReader(System.in));
         String line = null;
         while((line = f.readLine()) != null){
-            System.out.println("DEBUG: " + line);
             conn.execute(line);
         }
-        System.out.println("ALL DONE");
+        conn.disconnect();
     }
 }
 
