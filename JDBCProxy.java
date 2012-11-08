@@ -58,7 +58,11 @@ class Connection {
         JSONArray result = new JSONArray();
         try{
             Statement statement = connection.createStatement();
-            statement.executeQuery(query);
+            Boolean res = statement.execute(query);
+            if(!query.toUpperCase().startsWith("SELECT")){
+                System.out.println(res);
+                return;
+            }
             ResultSet rs = statement.getResultSet();
             ResultSetMetaData rsFields = rs.getMetaData();
             while(rs.next()){
