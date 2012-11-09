@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import org.apache.commons.cli.*;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import java.net.URL;
 
 class Connection {
     private java.sql.Connection connection;
@@ -53,11 +54,28 @@ class Connection {
         }
     }
     
-    @SuppressWarnings("unchecked")
     public void execute(String query){
+        execute(query, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public void execute(String query, String fileUri){
         JSONArray result = new JSONArray();
         try{
-            Statement statement = connection.createStatement();
+            PreparedStatement statement = connection.prepareStatement(query);
+            if(fileUri != null){
+                URL pdfUrl = new URL(fileUri);
+                //System.out.println("IGOTHERE1");
+                //File pdf = new File(pdfUrl.toURI());
+                //System.out.println("IGOTHERE2");
+                InputStream pdfContents = pdfUrl.openStream();
+                //try {
+                //    pdfContents = new FileInputStream(pdf);
+                //} catch (FileNotFoundException e) {
+                //    System.out.println(e);
+                //}
+                statement.setBinaryStream(1, pdfContents, pdfContents.available());
+            }
             Boolean res = statement.execute(query);
             if(!query.toUpperCase().startsWith("SELECT")){
                 System.out.println(res);
@@ -92,12 +110,14 @@ public class JDBCProxy {
             options.addOption("c", true, "Connection string");
             options.addOption("d", true, "class name for jdbc connection");
             options.addOption("t", false, "print table names and exit");
+            options.addOption("f", true, "file uri for prepared statement");
             options.addOption("help", false, "print this help message");
             CommandLineParser parser = new PosixParser();
             commandLine = parser.parse(options, args);
             if(commandLine.hasOption("help")) {
                 HelpFormatter formatter = new HelpFormatter();
                 formatter.printHelp("jdbcproxy", options);
+                System.exit(0);
             }
         }catch( ParseException exp ) {
             System.out.println( "Unexpected exception:" + exp.getMessage() );
@@ -121,7 +141,8 @@ public class JDBCProxy {
             if(query.length()>0) query += "\n";
             query += line;
         }
-        conn.execute(query);
+        String fileUri = commandLine.getOptionValue("f");
+        conn.execute(query, fileUri);
         conn.disconnect();
     }
 }
