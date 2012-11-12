@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import org.apache.commons.cli.*;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import java.net.URL;
+import java.net.URI;
 
 class Connection {
     private java.sql.Connection connection;
@@ -59,27 +59,24 @@ class Connection {
     }
 
     @SuppressWarnings("unchecked")
-    public void execute(String query, String fileUri){
+    public void execute(String query, String file){
         JSONArray result = new JSONArray();
         try{
             PreparedStatement statement = connection.prepareStatement(query);
-            if(fileUri != null){
-                URL pdfUrl = new URL(fileUri);
-                //System.out.println("IGOTHERE1");
-                //File pdf = new File(pdfUrl.toURI());
-                //System.out.println("IGOTHERE2");
-                InputStream pdfContents = pdfUrl.openStream();
-                //try {
-                //    pdfContents = new FileInputStream(pdf);
-                //} catch (FileNotFoundException e) {
-                //    System.out.println(e);
-                //}
-                statement.setBinaryStream(1, pdfContents, pdfContents.available());
+            if(file != null){
+                File f = new File(file);
+                statement.setBinaryStream(1, new FileInputStream(f), 
+                                          (int)f.length());
             }
-            Boolean res = statement.execute(query);
-            if(!query.toUpperCase().startsWith("SELECT")){
-                System.out.println(res);
+            Boolean res;
+            if(query.toUpperCase().startsWith("UPDATE")){
+                System.out.println(statement.executeUpdate());
                 return;
+            }else if(!query.toUpperCase().startsWith("SELECT")){
+                System.out.println(statement.execute(query));
+                return;
+            }else{
+                statement.execute(query);
             }
             ResultSet rs = statement.getResultSet();
             ResultSetMetaData rsFields = rs.getMetaData();
@@ -110,7 +107,7 @@ public class JDBCProxy {
             options.addOption("c", true, "Connection string");
             options.addOption("d", true, "class name for jdbc connection");
             options.addOption("t", false, "print table names and exit");
-            options.addOption("f", true, "file uri for prepared statement");
+            options.addOption("f", true, "file location for use in prepared statement");
             options.addOption("help", false, "print this help message");
             CommandLineParser parser = new PosixParser();
             commandLine = parser.parse(options, args);
